@@ -1,0 +1,136 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Unity .gitignore  —  comprehensive edition
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Unity Auto-Generated ─────────────────────────────────────────────────────
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/[Uu]ser[Ss]ettings/
+/Temp/
+.utmp/
+sysinfo.txt
+crashlytics-build.properties
+
+# ── Builds ───────────────────────────────────────────────────────────────────
+/[Bb]uild/
+/[Bb]uilds/
+/[Bb]uild[Ww]indows/
+/[Bb]uild[Ll]inux/
+/[Bb]uild[Mm]ac/
+/[Bb]uild[Aa]ndroid/
+/[Bb]uild[Ii][Oo][Ss]/
+/[Bb]uild[Ww]eb[Gg][Ll]/
+*.apk
+*.aab
+*.ipa
+*.app
+*.exe
+*.x86
+*.x86_64
+
+# ── IDE & Editor ─────────────────────────────────────────────────────────────
+
+# Visual Studio
+.vs/
+*.sln
+*.csproj
+*.unityproj
+*.suo
+*.user
+*.userprefs
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains Rider
+.idea/
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# MonoDevelop / Xamarin
+*.pidb
+*.userprefs
+ExportedObj/
+.consulo/
+
+# ── OS & System ──────────────────────────────────────────────────────────────
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+*.orig
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ── Compiled / Debug ─────────────────────────────────────────────────────────
+*.tmp
+*.log
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.svd
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.booproj
+
+# ── Gradle (Android) ─────────────────────────────────────────────────────────
+.gradle/
+local.properties
+gradlew
+gradlew.bat
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ── Addressables ─────────────────────────────────────────────────────────────
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin.meta
+/ServerData/
+
+# ── Packages ─────────────────────────────────────────────────────────────────
+# Uncomment if you don't want to commit the packages lock
+# /Packages/packages-lock.json
+
+# ── Asset Store Tools ────────────────────────────────────────────────────────
+# Uncomment to ignore Asset Store Tools
+# /[Aa]ssets/AssetStoreTools*
+
+# ── Unity Package Files ──────────────────────────────────────────────────────
+*.unitypackage
+*.unitypackage.meta
+
+# ── Nuget ────────────────────────────────────────────────────────────────────
+[Nn]uget/
+packages/
+*.nupkg
+
+# ── Node / npm (if using for tooling) ────────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ── Python (if using for tooling) ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# ── Caches ───────────────────────────────────────────────────────────────────
+*.cache
+.sass-cache/
