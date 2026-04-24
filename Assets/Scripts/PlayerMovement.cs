@@ -12,7 +12,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float _jumpHeight = 1.5f;
     [SerializeField] private float _standHeight  = 3.3f;
     [SerializeField] private float _crouchHeight = 2.5f;
-    private float _targetHeight;
+    [SerializeField] private float _targetHeight;
 
     private float _gravity = -9.81f * 2f;
     private bool _isGrounded;
@@ -22,7 +22,7 @@ public class PlayerMovement : MonoBehaviour
     private PlayerInput _playerInput;
 
     private InputAction _moveAction;
-    private InputAction _jumpAction;
+    private InputAction _jumpAction; 
     private InputAction _walkAction;
     private InputAction _crouchAction; 
 
@@ -40,6 +40,8 @@ public class PlayerMovement : MonoBehaviour
         if (_jumpAction == null)   Debug.LogError("Jump action not found!");
         if (_walkAction == null)   Debug.LogError("Walk action not found!");
         if (_crouchAction == null) Debug.LogError("Crouch action not found!");
+
+        _targetHeight = _standHeight;
     }
     // void OnEnable()
     // {
@@ -59,7 +61,7 @@ public class PlayerMovement : MonoBehaviour
 
 
     void Update()
-    {
+    {        
         HandleGrounding();
         HandleJump();
         HandleCrouch();
@@ -110,7 +112,7 @@ public class PlayerMovement : MonoBehaviour
         else if (_walkAction.IsPressed())
             _speed = _walkSpeed;
 
-        Debug.Log($"Walk pressed: {_walkAction.IsPressed()} | Crouch pressed: {_crouchAction.IsPressed()} | Speed: {_speed}");
+        // Debug.Log($"Walk pressed: {_walkAction.IsPressed()} | Crouch pressed: {_crouchAction.IsPressed()} | Speed: {_speed}");
 
         _controller.Move(move * _speed * Time.deltaTime);
     }
