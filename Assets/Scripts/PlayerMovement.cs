@@ -1,7 +1,8 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
     [SerializeField] private float  _speed;
     [SerializeField] private float _runSpeed = 5f;
@@ -10,8 +11,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float _crouchTransitionSpeed = 8f;
 
     [SerializeField] private float _jumpHeight = 1.5f;
-    [SerializeField] private float _standHeight  = 3.3f;
-    [SerializeField] private float _crouchHeight = 2.5f;
+    [SerializeField] private float _standHeight  = 2f;
+    [SerializeField] private float _crouchHeight = 1.3f;
     [SerializeField] private float _targetHeight;
 
     private float _gravity = -9.81f * 2f;
@@ -25,6 +26,15 @@ public class PlayerMovement : MonoBehaviour
     private InputAction _jumpAction; 
     private InputAction _walkAction;
     private InputAction _crouchAction; 
+
+    public override void OnNetworkSpawn()
+    {
+        if (!IsOwner)
+        {
+            _playerInput.enabled = false;
+            enabled = false;              
+        }
+    }
 
     void Awake()
     {
@@ -43,32 +53,17 @@ public class PlayerMovement : MonoBehaviour
 
         _targetHeight = _standHeight;
     }
-    // void OnEnable()
-    // {
-    //     _moveAction.Enable();
-    //     _jumpAction.Enable();
-    //     _walkAction.Enable();
-    //     _crouchAction.Enable();
-    // }
-
-    // void OnDisable()
-    // {
-    //     _moveAction.Disable();
-    //     _jumpAction.Disable();
-    //     _walkAction.Disable();
-    //     _crouchAction.Disable();
-    // }
-
 
     void Update()
-    {        
+    {      
+        if(!IsOwner) return; 
         HandleGrounding();
         HandleJump();
         HandleCrouch();
-        HandleMovement();
 
+        Vector3 horizontal = GetHorizontalMove();
         _velocity.y += _gravity * Time.deltaTime;
-        _controller.Move(_velocity * Time.deltaTime);
+        _controller.Move((horizontal + Vector3.up * _velocity.y) * Time.deltaTime);
     }
 
     void HandleGrounding()
@@ -100,20 +95,16 @@ public class PlayerMovement : MonoBehaviour
         _controller.center  += new Vector3(0f, heightDelta / 2f, 0f);
         _controller.height   = newHeight;
     }
-    void HandleMovement()
+
+    private Vector3 GetHorizontalMove()
     {
         Vector2 input = _moveAction.ReadValue<Vector2>();
         Vector3 move  = transform.right * input.x + transform.forward * input.y;
 
         _speed = _runSpeed;
+        if (_crouchAction.IsPressed())    _speed = _crouchSpeed;
+        else if (_walkAction.IsPressed()) _speed = _walkSpeed;
 
-        if (_crouchAction.IsPressed())
-            _speed = _crouchSpeed;
-        else if (_walkAction.IsPressed())
-            _speed = _walkSpeed;
-
-        // Debug.Log($"Walk pressed: {_walkAction.IsPressed()} | Crouch pressed: {_crouchAction.IsPressed()} | Speed: {_speed}");
-
-        _controller.Move(move * _speed * Time.deltaTime);
+        return move * _speed;
     }
 }

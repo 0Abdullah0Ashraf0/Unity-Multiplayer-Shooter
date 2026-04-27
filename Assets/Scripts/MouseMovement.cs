@@ -1,7 +1,8 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class MouseMovement : MonoBehaviour
+public class MouseMovement : NetworkBehaviour
 {
     [SerializeField] private Transform _playerRoot;
     [SerializeField] private float _mouseSensitivity = 0.1f;
@@ -18,17 +19,22 @@ public class MouseMovement : MonoBehaviour
         _playerInput = GetComponentInParent<PlayerInput>();
         _lookAction = _playerInput.actions["Look"];
     }
-    void OnEnable()  => _lookAction.Enable();
-    void OnDisable() => _lookAction.Disable();
 
-    void Start()
+    public override void OnNetworkSpawn()
     {
+        if (!IsOwner)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
     void Update()
     {
+        if(!IsOwner) return; // Only allow the owning client to control camera movement
         //get inputs
         Vector2 lookInput = _lookAction.ReadValue<Vector2>();
 

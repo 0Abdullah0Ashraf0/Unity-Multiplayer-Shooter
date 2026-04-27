@@ -1,24 +1,63 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerHealth : MonoBehaviour
+public class PlayerHealth : NetworkBehaviour
 {
-    [SerializeField] private int maxHealth = 100;
-    [SerializeField] private int currentHealth;
-    void Start()
+    [SerializeField] private int _maxHealth = 100;
+    public bool IsDead => CurrentHealth.Value <= 0;
+    public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>(
+        100,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server 
+    );    
+    public override void OnNetworkSpawn()
     {
-        currentHealth = maxHealth;
-        Debug.Log("Player Health: " + currentHealth);
+        // Reset health when spawned
+        if (IsServer)
+            CurrentHealth.Value = _maxHealth;
+
+        // Subscribe to health changes for HUD later
+        CurrentHealth.OnValueChanged += OnHealthChanged;
+    }
+    public override void OnNetworkDespawn()
+    {
+        CurrentHealth.OnValueChanged -= OnHealthChanged;
     }
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, ulong attackerClientId)
     {
-        currentHealth -= damage;
-        Debug.Log("Player took " + damage + " damage.");
-        Debug.Log("Player Health: " + currentHealth);
-        if (currentHealth <= 0)
-        {
-            //die
-            Debug.Log("Player Died");
-        }
+        if (!IsServer || IsDead) return;
+
+        CurrentHealth.Value = Mathf.Max(0, CurrentHealth.Value - damage);
+        Debug.Log($"Player {OwnerClientId} took {damage} damage. HP: {CurrentHealth.Value}");
+
+        if (CurrentHealth.Value <= 0)
+            Die(attackerClientId);
+    }
+
+    private void Die(ulong attackerClientId)
+    {
+        Debug.Log($"Player {OwnerClientId} died! Killed by {attackerClientId}");
+        // We'll hook ScoreManager and respawn here in the next step
+        DieClientRpc();
+    }
+
+    [ClientRpc]
+    private void DieClientRpc()
+    {
+        // Visual death effects go here later
+        Debug.Log("Death ClientRpc received");
+    }
+
+    public void Respawn()
+    {
+        if (!IsServer) return;
+        CurrentHealth.Value = _maxHealth;
+    }
+
+    private void OnHealthChanged(int oldVal, int newVal)
+    {
+        // HUD will subscribe to this later
+        Debug.Log($"Health changed: {oldVal} -> {newVal}");
     }
 }

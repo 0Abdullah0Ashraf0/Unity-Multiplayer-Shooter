@@ -1,7 +1,8 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class Weapon : MonoBehaviour
+public class Weapon : NetworkBehaviour
 {
     public Camera playerCamera;
 
@@ -28,25 +29,27 @@ public class Weapon : MonoBehaviour
         if (_reloadAction == null) Debug.LogError("Reload action not found!");
     }
 
-    void OnEnable()
+    public override void OnNetworkSpawn()
     {
-        _shootAction.Enable();
-        _reloadAction.Enable();
-    }
-    void OnDisable()
-    {
-        _shootAction.Disable();
-        _reloadAction.Disable();
-    }
-    void Start()
-    {
-        _nextFireTime = Time.time;
+        // Disable shooting on non-owner copies of this weapon
+        if (!IsOwner)
+        {
+            enabled = false;
+            return;
+        }
+
         _currentAmmo = _ammoPerReload;
-        _totalAmmo = _maxAmmo;
+        _totalAmmo   = _maxAmmo;
+        _nextFireTime = Time.time;
     }
+
+    // void OnEnable()  { _shootAction?.Enable();  _reloadAction?.Enable();  }
+    // void OnDisable() { _shootAction?.Disable(); _reloadAction?.Disable(); }
 
     void Update()
     {
+        if (!IsOwner) return;
+        
         if (_shootAction.WasPressedThisFrame() && Time.time >= _nextFireTime && _currentAmmo > 0)
         {
             _nextFireTime = Time.time + _fireRate;
@@ -61,21 +64,33 @@ public class Weapon : MonoBehaviour
 
     private void Shoot()
     {
-        RaycastHit hit;
+        _currentAmmo--;
+        Debug.Log("Shot fired. Ammo left: " + _currentAmmo);
+       
         Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
         Debug.DrawRay(ray.origin, ray.direction * _range, Color.red, 5f);
 
+        // Send to server for authoritative hit validation
+        ShootServerRpc(ray.origin, ray.direction);
+    }
+
+    [ServerRpc]
+     private void ShootServerRpc(Vector3 origin, Vector3 direction)
+    {
+        RaycastHit hit;
+        Ray ray = new Ray(origin, direction);
+
         if (Physics.Raycast(ray, out hit, _range))
         {
-            Debug.Log("Hit: " + hit.collider.name);
+            Debug.Log($"[Server] Hit: {hit.collider.name}");
 
-            PlayerHealth playerHealth = hit.collider.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
+            PlayerHealth playerHealth = hit.collider.GetComponentInParent<PlayerHealth>();
+
+            // Make sure we didn't shoot ourselves
+            if (playerHealth != null && playerHealth.OwnerClientId != OwnerClientId)
             {
-                playerHealth.TakeDamage(_damage);
+                playerHealth.TakeDamage(_damage, OwnerClientId);
             }
-            _currentAmmo--;
-            Debug.Log("Shot fired. Ammo left: " + _currentAmmo);
         }
     }
 
