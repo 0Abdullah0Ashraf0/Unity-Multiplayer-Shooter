@@ -38,7 +38,7 @@ public class PlayerHealth : NetworkBehaviour
     private void Die(ulong attackerClientId)
     {
         Debug.Log($"Player {OwnerClientId} died! Killed by {attackerClientId}");
-        // We'll hook ScoreManager and respawn here in the next step
+        ScoreManager.Instance?.RegisterKill(attackerClientId);
         DieClientRpc();
     }
 
@@ -57,7 +57,8 @@ public class PlayerHealth : NetworkBehaviour
 
     private void OnHealthChanged(int oldVal, int newVal)
     {
-        // HUD will subscribe to this later
         Debug.Log($"Health changed: {oldVal} -> {newVal}");
+
+        if (IsOwner) HUDManager.Instance?.UpdateHealth(newVal);
     }
 }
