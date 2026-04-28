@@ -27,7 +27,11 @@ public class MouseMovement : NetworkBehaviour
             gameObject.SetActive(false);
             return;
         }
+    }
 
+    public void OnMatchStart()
+    {
+        if (!IsOwner) return;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
