@@ -1,3 +1,4 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -45,15 +46,59 @@ public class PlayerHealth : NetworkBehaviour
     [ClientRpc]
     private void DieClientRpc()
     {
-        // Visual death effects go here later
-        Debug.Log("Death ClientRpc received");
+        if (IsOwner)
+        {
+            // Visual death effects go here later
+            Debug.Log("Death ClientRpc received");
+            
+            //lock input
+            GetComponent<PlayerMovement>().enabled = false;
+            GetComponentInChildren<MouseMovement>().enabled = false;
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
+            // Show death screen
+            HUDManager.Instance?.ShowDeathScreen();
+        }
+
+        //hide players
+        // On death - play death animation instead
+        foreach (var r in GetComponentsInChildren<Renderer>())
+            r.enabled = false;
     }
 
-    public void Respawn()
+    public void Respawn(Vector3 position, Quaternion rotation)
     {
         if (!IsServer) return;
         CurrentHealth.Value = _maxHealth;
+        TeleportClientRpc(position, rotation);
     }
+
+    [ClientRpc]
+    private void TeleportClientRpc(Vector3 position, Quaternion rotation)
+    {
+        var cc = GetComponent<CharacterController>();
+        cc.enabled = false;
+        transform.SetPositionAndRotation(position, rotation);
+        cc.enabled = true;
+
+        // Unhide the body 
+        // On respawn - play respawn animation instead
+        foreach (var r in GetComponentsInChildren<Renderer>())
+            r.enabled = true;
+
+        if (IsOwner)
+        {
+            // Re-lock cursor and hide it again
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
+            // Hide death screen
+            HUDManager.Instance?.HideDeathScreen();
+        }
+    }
+
 
     private void OnHealthChanged(int oldVal, int newVal)
     {

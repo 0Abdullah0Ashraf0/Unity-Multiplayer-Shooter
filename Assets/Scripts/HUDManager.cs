@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -53,4 +54,14 @@ public class HUDManager : MonoBehaviour
         // Update ammo UI here
         Debug.Log($"Updating HUD: Ammo {currentAmmo}/{maxAmmo}");
     }
+
+    public void ShowDeathScreen()
+    {
+        Debug.Log("[HUDManager] ShowDeathScreen called");
+    }
+    public void HideDeathScreen()
+    {
+        Debug.Log("[HUDManager] HideDeathScreen called");
+    }
+
 }

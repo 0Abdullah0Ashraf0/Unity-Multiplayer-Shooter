@@ -25,9 +25,15 @@ public class MainMenu : MonoBehaviour
 
     public void HostGameAndShowMapSelection()
     {
+        // If NetworkManager is already running from a previous session, shut it down first
+        if (NetworkManager.Singleton.IsListening)
+        {
+            NetworkManager.Singleton.Shutdown();
+            Debug.Log("[Host] Shut down existing session before rehosting");
+        }
+
         joinPanel.SetActive(false);
         SettingsPanel.SetActive(false);
-        MapPanel.SetActive(false);
 
         _transport.SetConnectionData("0.0.0.0", 7777);
 
@@ -126,8 +132,8 @@ public class MainMenu : MonoBehaviour
         int index = 0;
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClients.Keys)
         {
-            Vector3 spawnPos = points[index].transform.position;
-            Quaternion spawnRot = points[index].transform.rotation;
+            Vector3 spawnPos = points[index % points.Length].transform.position;
+            Quaternion spawnRot = points[index % points.Length].transform.rotation;
 
             // Spawn at a position 
             GameObject player = Instantiate(playerPrefab, spawnPos, spawnRot);

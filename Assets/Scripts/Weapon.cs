@@ -8,7 +8,7 @@ public class Weapon : NetworkBehaviour
 
     [SerializeField] private float _fireRate = 0.5f;
     [SerializeField] private float _range = 30f;
-    [SerializeField] private int _damage = 10;
+    [SerializeField] private int _damage = 25;
     private float _nextFireTime = 0f;
 
     [SerializeField] private int _maxAmmo = 30;
@@ -90,6 +90,7 @@ public class Weapon : NetworkBehaviour
             if (playerHealth != null && playerHealth.OwnerClientId != OwnerClientId)
             {
                 playerHealth.TakeDamage(_damage, OwnerClientId);
+                Debug.Log($"[Server] Dealt {_damage} damage to Player {playerHealth.OwnerClientId}");
             }
         }
     }
