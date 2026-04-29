@@ -12,6 +12,7 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private GameObject SettingsPanel;     
     [SerializeField] private TMP_InputField ipInputField;
     private UnityTransport _transport;
+    private bool _gameStarted = false; // Flag to prevent multiple game starts
 
     public void Start()
     {
@@ -92,13 +93,12 @@ public class MainMenu : MonoBehaviour
         // load the selected map
         // NetworkManager.Singleton.SceneManager.LoadScene(mapName, LoadSceneMode.Additive);
 
-         if (!NetworkManager.Singleton.IsHost) return;
+        if (!NetworkManager.Singleton.IsHost) return;
 
-            // Subscribe to scene load event BEFORE loading
-            NetworkManager.Singleton.SceneManager.OnLoadComplete += OnMapLoaded;
+        // Subscribe to scene load event BEFORE loading
+        NetworkManager.Singleton.SceneManager.OnLoadComplete += OnMapLoaded;
 
-            NetworkManager.Singleton.SceneManager
-                .LoadScene(mapName, LoadSceneMode.Single);
+        NetworkManager.Singleton.SceneManager.LoadScene(mapName, LoadSceneMode.Single);
     }
 
     private void OnMapLoaded(ulong clientId, string sceneName, LoadSceneMode loadSceneMode)
@@ -106,15 +106,35 @@ public class MainMenu : MonoBehaviour
         // Fires for EACH client that finishes loading
         // Only the server should spawn players
         if (!NetworkManager.Singleton.IsServer) return;
+        if (_gameStarted) return;
 
-        NetworkClient client = NetworkManager.Singleton.ConnectedClients[clientId];
+        // wait for other player to load before spawning
+        if (NetworkManager.Singleton.ConnectedClients.Count < 2) return;
 
-        // Spawn at a position — hook up spawnpoints later
-        GameObject player = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
+        _gameStarted = true;
+        StartGame();
 
         // Cleanup listener when both players are in
-        if (NetworkManager.Singleton.ConnectedClients.Count >= 2)
-            NetworkManager.Singleton.SceneManager.OnLoadComplete -= OnMapLoaded;
+        NetworkManager.Singleton.SceneManager.OnLoadComplete -= OnMapLoaded;
+    }
+
+    private void StartGame()
+    {
+        // set spawn point
+        GameObject[] points = GameObject.FindGameObjectsWithTag("SpawnPoint");
+
+        int index = 0;
+        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClients.Keys)
+        {
+            Vector3 spawnPos = points[index].transform.position;
+            Quaternion spawnRot = points[index].transform.rotation;
+
+            // Spawn at a position 
+            GameObject player = Instantiate(playerPrefab, spawnPos, spawnRot);
+            player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
+            
+            Debug.Log($"Client {clientId}. Spawned player at {spawnPos}");
+            index++;
+        }    
     }
 }

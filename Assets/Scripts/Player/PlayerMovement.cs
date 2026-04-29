@@ -32,8 +32,12 @@ public class PlayerMovement : NetworkBehaviour
         if (!IsOwner)
         {
             _playerInput.enabled = false;
-            enabled = false;              
+            enabled = false;
+            return;              
         }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void Awake()
