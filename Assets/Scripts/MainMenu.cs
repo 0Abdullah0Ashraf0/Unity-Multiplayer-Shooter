@@ -14,9 +14,21 @@ public class MainMenu : MonoBehaviour
     private UnityTransport _transport;
     private bool _gameStarted = false; // Flag to prevent multiple game starts
 
+    private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+    {
+        // 1. Allow the player to join the server
+        response.Approved = true;
+    
+        // 2. CRITICAL FIX: Tell NGO *not* to auto-spawn the default player immediately, 
+        // because your StartGame() method will handle it manually later!
+        response.CreatePlayerObject = false; 
+    }
+    
     public void Start()
     {
         _transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+
+        NetworkManager.Singleton.ConnectionApprovalCallback = ApprovalCheck;
 
         joinPanel.SetActive(false);
         MapPanel.SetActive(false);
