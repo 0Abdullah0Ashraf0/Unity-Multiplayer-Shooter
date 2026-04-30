@@ -1,11 +1,16 @@
 using Unity.Netcode;
 using UnityEngine;
+using System.Collections;
 
 public class ScoreManager : NetworkBehaviour
 {
     public static ScoreManager Instance;
-    [SerializeField] private int _killsToWin = 2;
-    [SerializeField] private float _respawnDelay = 1.0f;
+     
+    // ─── Settings
+    [SerializeField] private int _killsToWin = 5;
+    [SerializeField] private int _countdownSeconds = 5;   
+    
+    //network variables
     public NetworkVariable<int> Player1Kills = new NetworkVariable<int>(0,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
@@ -16,73 +21,115 @@ public class ScoreManager : NetworkBehaviour
         NetworkVariableWritePermission.Server
     );
 
+    public NetworkVariable<int> CurrentRound = new NetworkVariable<int>(1,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
+
     void Awake() => Instance = this;
+
+    
+    
+    public override void OnNetworkSpawn()
+    {
+        // Every client subscribes so their HUD updates automatically when the
+        // server changes any of these NetworkVariables.
+        Player1Kills.OnValueChanged += (_, newVal) =>
+            HUDManager.Instance?.UpdateScore(newVal, Player2Kills.Value);
+ 
+        Player2Kills.OnValueChanged += (_, newVal) =>
+            HUDManager.Instance?.UpdateScore(Player1Kills.Value, newVal);
+ 
+        CurrentRound.OnValueChanged += (_, newVal) =>
+            HUDManager.Instance?.ShowRoundBanner(newVal);
+ 
+        // Initialise HUD with current values (important when a client reconnects)
+        HUDManager.Instance?.UpdateScore(Player1Kills.Value, Player2Kills.Value);
+    }
+
+
+
 
     public void RegisterKill(ulong killerClientId)
     {
         if (!IsServer) return;
-
+ 
         if (killerClientId == 0) Player1Kills.Value++;
         else                     Player2Kills.Value++;
-
-        Debug.Log($"[ScoreManager] Kill registered. Killer: Client {killerClientId} | Score → P1: {Player1Kills.Value} | P2: {Player2Kills.Value} | Kills to win: {_killsToWin}");
-        HUDManager.Instance?.UpdateScore(Player1Kills.Value, Player2Kills.Value);
-
+ 
         if (Player1Kills.Value >= _killsToWin || Player2Kills.Value >= _killsToWin)
         {
-            Debug.Log($"[ScoreManager] Game over! Winner: Client {killerClientId}");
+            // Game over – tell all clients who won
             EndGameClientRpc(killerClientId);
         }
         else
         {
-            //new round respawn logic will go here later
-            Debug.Log("Next round! Respawning players...");
-
-            SetAllPlayersInputClientRpc(false); // Disable input during respawn
-            Invoke(nameof(RespawnAllPlayers), _respawnDelay);
+            // Not over yet – start the countdown then begin the next round
+            StartCoroutine(NextRoundCountdown());
         }
     }
 
+
+
+
+
+
+    private IEnumerator NextRoundCountdown()
+    {
+        // 1. Show countdown UI on every client
+        StartCountdownClientRpc(_countdownSeconds);
+ 
+        // 2. Wait the same duration on the server
+        yield return new WaitForSeconds(_countdownSeconds);
+ 
+        // 3. Bump round number – OnValueChanged fires ShowRoundBanner on all clients
+        CurrentRound.Value++;
+ 
+        // 4. Respawn all players and reset their ammo
+        RespawnAllPlayers();
+    }
+
+
+
+
+
     private void RespawnAllPlayers()
     {
-        // Respawn logic will go here later (e.g., resetting player positions, health, etc.)
-        Debug.Log($"[ScoreManager] Respawning {NetworkManager.Singleton.ConnectedClients.Count} players...");
-
         GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoint");
-        Debug.Log($"[ScoreManager] Found {spawnPoints.Length} spawn points");
+        
         int index = 0;
-
-        foreach (var client in NetworkManager.Singleton.ConnectedClients)
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
-            var playerObj = client.Value.PlayerObject;
-            if (playerObj == null) {
-                Debug.LogWarning($"[ScoreManager] Client {client.Key} has no PlayerObject!");
-                continue;
-            }
+            var playerObj = client.PlayerObject;
+            if (playerObj == null) continue;
 
             Vector3 pos = spawnPoints[index % spawnPoints.Length].transform.position;
             Quaternion rot = spawnPoints[index % spawnPoints.Length].transform.rotation;
 
-            playerObj.GetComponent<PlayerHealth>().Respawn(pos, rot);
+            // Restore ammo (calls HUD update internally)
+            var weapon = playerObj.GetComponentInChildren<Weapon>();
+            if (weapon != null) weapon.ResetAmmo();
+
+            // Restore health
+            var health = playerObj.GetComponent<PlayerHealth>();
+            if (health != null) health.Respawn(pos, rot);
+
             index++;
-
-            Debug.Log($"Client {client}. Spawned player at {pos}");
         }
-
-
-        SetAllPlayersInputClientRpc(true); // Re-enable input after respawn
-        Debug.Log("[ScoreManager] All players respawned. Input re-enabled.");
     }
+
+
+
+
 
     [ClientRpc]
-    private void SetAllPlayersInputClientRpc(bool enabled)
+    private void StartCountdownClientRpc(int seconds)
     {
-        var localPlayer = NetworkManager.Singleton.LocalClient?.PlayerObject;
-        if (localPlayer == null) return;
-
-        localPlayer.GetComponent<PlayerMovement>().enabled = enabled;
-        localPlayer.GetComponentInChildren<MouseMovement>().enabled = enabled;
+        HUDManager.Instance?.StartCountdownUI(seconds);
     }
+ 
+
 
     [ClientRpc]
     private void EndGameClientRpc(ulong winnerClientId)

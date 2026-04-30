@@ -57,9 +57,6 @@ public class PlayerHealth : NetworkBehaviour
 
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-
-            // Show death screen
-            HUDManager.Instance?.ShowDeathScreen();
         }
 
         //hide players
@@ -93,9 +90,6 @@ public class PlayerHealth : NetworkBehaviour
             // Re-lock cursor and hide it again
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-
-            // Hide death screen
-            HUDManager.Instance?.HideDeathScreen();
         }
     }
 
