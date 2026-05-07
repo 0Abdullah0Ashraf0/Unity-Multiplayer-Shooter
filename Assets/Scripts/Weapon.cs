@@ -7,7 +7,7 @@ public class Weapon : NetworkBehaviour
     public Camera playerCamera;
 
     [SerializeField] private float _fireRate = 0.5f;
-    [SerializeField] private float _range = 30f;
+    [SerializeField] private float _range = 70f;
     [SerializeField] private int _damage = 10;
     private float _nextFireTime = 0f;
 

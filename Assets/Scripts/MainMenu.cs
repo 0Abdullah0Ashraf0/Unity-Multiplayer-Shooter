@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -9,9 +10,12 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject joinPanel;     
     [SerializeField] private GameObject MapPanel;     
-    [SerializeField] private GameObject SettingsPanel;     
+    [SerializeField] private GameObject SettingsPanel;   
+    [SerializeField] private TextMeshProUGUI _errorText;  
     [SerializeField] private TMP_InputField ipInputField;
     private UnityTransport _transport;
+    private Coroutine _connectionTimeoutCoroutine;
+    private const float CONNECTION_TIMEOUT = 5f;
     private bool _gameStarted = false; // Flag to prevent multiple game starts
 
     private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
@@ -26,6 +30,7 @@ public class MainMenu : MonoBehaviour
     
     public void Start()
     {
+        _errorText.text = "";
         _transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
 
         NetworkManager.Singleton.ConnectionApprovalCallback = ApprovalCheck;
@@ -76,10 +81,17 @@ public class MainMenu : MonoBehaviour
 
     public void JoinGame()
     {
-         // Guard against double-invocation
+        // Guard against double-invocation
         if (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsHost) return;
         
         string ipAddress = ipInputField.text;
+        if (!IsValidIP(ipAddress))
+        {
+            _errorText.text = "Invalid IP address."; // add a TMP error label in UI
+            return;
+        }
+
+        _errorText.text = "Connecting...";
         _transport.SetConnectionData(ipAddress, 7777);
 
         if (NetworkManager.Singleton.StartClient())
@@ -90,6 +102,42 @@ public class MainMenu : MonoBehaviour
         {
             Debug.LogError("[Client] Failed to start!");
         }
+
+        //listen for failure
+        NetworkManager.Singleton.OnClientDisconnectCallback += OnConnectionFailed;
+        // Start timeout timer
+        _connectionTimeoutCoroutine = StartCoroutine(ConnectionTimeout());
+    }
+
+    private bool IsValidIP(string ip)
+    {
+        if (string.IsNullOrEmpty(ip)) return false;
+        // also accept "localhost"
+        if (ip == "localhost") return true;
+        return System.Net.IPAddress.TryParse(ip, out _);
+    }
+    private IEnumerator ConnectionTimeout()
+    {
+        yield return new WaitForSeconds(CONNECTION_TIMEOUT);
+
+        // If we're still not connected after timeout, kill it
+        if (!NetworkManager.Singleton.IsConnectedClient)
+        {
+            NetworkManager.Singleton.Shutdown();
+            NetworkManager.Singleton.OnClientDisconnectCallback -= OnConnectionFailed;
+            _errorText.text = "Could not reach host.";
+        }
+    }
+
+    private void OnConnectionFailed(ulong clientId)
+    {
+        // Stop the timeout coroutine since we already got a response
+        if (_connectionTimeoutCoroutine != null)
+            StopCoroutine(_connectionTimeoutCoroutine);
+
+        NetworkManager.Singleton.OnClientDisconnectCallback -= OnConnectionFailed;
+        NetworkManager.Singleton.Shutdown();
+        _errorText.text = "Could not reach host. Check IP and try again.";
     }
 
     public void ShowSettingsPanel()
