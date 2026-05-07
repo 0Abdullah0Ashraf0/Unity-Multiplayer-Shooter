@@ -7,12 +7,18 @@ using UnityEngine.SceneManagement;
 
 public class MainMenu : MonoBehaviour
 {
-    [SerializeField] private GameObject playerPrefab;
-    [SerializeField] private GameObject joinPanel;     
-    [SerializeField] private GameObject MapPanel;     
-    [SerializeField] private GameObject SettingsPanel;   
+    [SerializeField] private GameObject _playerPrefab;
+    // audio //
+    [SerializeField] private AudioSource _audioSource;
+    // ui //
+    [SerializeField] private GameObject _joinPanel;     
+    [SerializeField] private GameObject _MapPanel;     
+    [SerializeField] private GameObject _SettingsPanel;   
+    [SerializeField] private GameObject _waitingPanel;
     [SerializeField] private TextMeshProUGUI _errorText;  
-    [SerializeField] private TMP_InputField ipInputField;
+    [SerializeField] private TMP_InputField _ipInputField;
+
+    // network shit //
     private UnityTransport _transport;
     private Coroutine _connectionTimeoutCoroutine;
     private const float CONNECTION_TIMEOUT = 5f;
@@ -35,9 +41,10 @@ public class MainMenu : MonoBehaviour
 
         NetworkManager.Singleton.ConnectionApprovalCallback = ApprovalCheck;
 
-        joinPanel.SetActive(false);
-        MapPanel.SetActive(false);
-        SettingsPanel.SetActive(false);
+        _joinPanel.SetActive(false);
+        _MapPanel.SetActive(false);
+        _SettingsPanel.SetActive(false);
+        _waitingPanel.SetActive(false); 
     }
 
     public void HostGameAndShowMapSelection()
@@ -52,15 +59,16 @@ public class MainMenu : MonoBehaviour
             Debug.Log("[Host] Shut down existing session before rehosting");
         }
 
-        joinPanel.SetActive(false);
-        SettingsPanel.SetActive(false);
+        _joinPanel.SetActive(false);
+        _SettingsPanel.SetActive(false);
 
         _transport.SetConnectionData("0.0.0.0", 7777);
 
         if (NetworkManager.Singleton.StartHost())
         {
             Debug.Log("[Host] Started on port 7777");
-            MapPanel.SetActive(true);
+            _waitingPanel.SetActive(true);
+            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         }
         else
         {
@@ -68,15 +76,32 @@ public class MainMenu : MonoBehaviour
         }
     }
 
+    private void OnClientConnected(ulong clientId)
+    {
+        if (NetworkManager.Singleton.ConnectedClients.Count >= 2)
+        {
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+            _waitingPanel.SetActive(false);
+            _MapPanel.SetActive(true);
+        }
+    }
+
+    public void CancelHosting()
+    {
+        NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+        NetworkManager.Singleton.Shutdown();
+        _waitingPanel.SetActive(false);
+    }
+
     public void ShowJoinPanel()
     {
-        MapPanel.SetActive(false);
-        SettingsPanel.SetActive(false);
+        _MapPanel.SetActive(false);
+        _SettingsPanel.SetActive(false);
 
         // start client
 
         // enter IP address/party code and connect
-        joinPanel.SetActive(true);
+        _joinPanel.SetActive(true);
     }
 
     public void JoinGame()
@@ -84,7 +109,7 @@ public class MainMenu : MonoBehaviour
         // Guard against double-invocation
         if (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsHost) return;
         
-        string ipAddress = ipInputField.text;
+        string ipAddress = _ipInputField.text;
         if (!IsValidIP(ipAddress))
         {
             _errorText.text = "Invalid IP address."; // add a TMP error label in UI
@@ -143,18 +168,18 @@ public class MainMenu : MonoBehaviour
     public void ShowSettingsPanel()
     {
         // Show settings menu only
-        joinPanel.SetActive(false);
-        MapPanel.SetActive(false);
-        SettingsPanel.SetActive(true);
+        _joinPanel.SetActive(false);
+        _MapPanel.SetActive(false);
+        _SettingsPanel.SetActive(true);
 
         //sensitivity, audio, etc.
     }
 
     public void QuitGame()
     {
-        joinPanel.SetActive(false);
-        MapPanel.SetActive(false);
-        SettingsPanel.SetActive(false);
+        _joinPanel.SetActive(false);
+        _MapPanel.SetActive(false);
+        _SettingsPanel.SetActive(false);
         
         // Quit the application
         Application.Quit();
@@ -203,7 +228,7 @@ public class MainMenu : MonoBehaviour
             Quaternion spawnRot = points[index % points.Length].transform.rotation;
 
             // Spawn at a position 
-            GameObject player = Instantiate(playerPrefab, spawnPos, spawnRot);
+            GameObject player = Instantiate(_playerPrefab, spawnPos, spawnRot);
             player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
             
             Debug.Log($"Client {clientId}. Spawned player at {spawnPos}");
