@@ -37,6 +37,9 @@ public class MainMenu : MonoBehaviour
 
     public void HostGameAndShowMapSelection()
     {
+         // Guard against double-invocation
+        if (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsHost) return;
+
         // If NetworkManager is already running from a previous session, shut it down first
         if (NetworkManager.Singleton.IsListening)
         {
@@ -73,6 +76,9 @@ public class MainMenu : MonoBehaviour
 
     public void JoinGame()
     {
+         // Guard against double-invocation
+        if (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsHost) return;
+        
         string ipAddress = ipInputField.text;
         _transport.SetConnectionData(ipAddress, 7777);
 
@@ -129,6 +135,7 @@ public class MainMenu : MonoBehaviour
         // wait for other player to load before spawning
         if (NetworkManager.Singleton.ConnectedClients.Count < 2) return;
 
+        Debug.Log($"All players loaded {sceneName}. Starting game...");
         _gameStarted = true;
         StartGame();
 
