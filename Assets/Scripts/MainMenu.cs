@@ -8,8 +8,6 @@ using UnityEngine.SceneManagement;
 public class MainMenu : MonoBehaviour
 {
     [SerializeField] private GameObject _playerPrefab;
-    // audio //
-    [SerializeField] private AudioSource _audioSource;
     // ui //
     [SerializeField] private GameObject _joinPanel;     
     [SerializeField] private GameObject _MapPanel;     
@@ -106,16 +104,21 @@ public class MainMenu : MonoBehaviour
 
     public void JoinGame()
     {
+        MenuAudio.Instance?.PlayClick();
+        _errorText.text = "";
+
         // Guard against double-invocation
         if (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsHost) return;
         
         string ipAddress = _ipInputField.text;
         if (!IsValidIP(ipAddress))
         {
+            MenuAudio.Instance?.PlayWrongIp();
             _errorText.text = "Invalid IP address."; // add a TMP error label in UI
             return;
         }
 
+        MenuAudio.Instance?.PlayConnecting(); 
         _errorText.text = "Connecting...";
         _transport.SetConnectionData(ipAddress, 7777);
 
@@ -148,14 +151,24 @@ public class MainMenu : MonoBehaviour
         // If we're still not connected after timeout, kill it
         if (!NetworkManager.Singleton.IsConnectedClient)
         {
+            MenuAudio.Instance?.StopConnecting();
+            MenuAudio.Instance?.PlayWrongIp();
             NetworkManager.Singleton.Shutdown();
             NetworkManager.Singleton.OnClientDisconnectCallback -= OnConnectionFailed;
             _errorText.text = "Could not reach host.";
+        }
+        else
+        {
+            MenuAudio.Instance?.StopConnecting();
+            MenuAudio.Instance?.PlayConnected(); 
         }
     }
 
     private void OnConnectionFailed(ulong clientId)
     {
+        MenuAudio.Instance?.StopConnecting();
+        MenuAudio.Instance?.PlayWrongIp();
+
         // Stop the timeout coroutine since we already got a response
         if (_connectionTimeoutCoroutine != null)
             StopCoroutine(_connectionTimeoutCoroutine);

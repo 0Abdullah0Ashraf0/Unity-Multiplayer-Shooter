@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 public class Weapon : NetworkBehaviour
 {
     public Camera playerCamera;
-
+    [SerializeField] private PlayerAudio _playerAudio;
     [SerializeField] private float _fireRate = 0.5f;
     [SerializeField] private float _range = 70f;
     [SerializeField] private int _damage = 10;
@@ -23,6 +23,7 @@ public class Weapon : NetworkBehaviour
     void Awake()
     {
         _playerInput = GetComponentInParent<PlayerInput>();
+        _playerAudio = GetComponentInParent<PlayerAudio>();
         _shootAction = _playerInput.actions["Shoot"];
         _reloadAction = _playerInput.actions["Reload"];
         if (_shootAction == null) Debug.LogError("Shoot action not found!");
@@ -35,8 +36,22 @@ public class Weapon : NetworkBehaviour
         if (!IsOwner)
         {
             enabled = false;
+            this.enabled = false;
+
+            // Move to Default layer so other players' main cameras can see it
+            gameObject.layer = LayerMask.NameToLayer("Default");
+
+            // Also set all children (the mesh renderers)
+            foreach (Transform child in GetComponentsInChildren<Transform>())
+                child.gameObject.layer = LayerMask.NameToLayer("Default");
+
             return;
         }
+
+        // Owner: stays on FirstPersonWeapon layer — only seen by WeaponCamera
+        gameObject.layer = LayerMask.NameToLayer("FirstPersonWeapon");
+        foreach (Transform child in GetComponentsInChildren<Transform>())
+            child.gameObject.layer = LayerMask.NameToLayer("FirstPersonWeapon");
 
         _currentAmmo = _ammoPerReload;
         _totalAmmo   = _maxAmmo;
@@ -53,17 +68,20 @@ public class Weapon : NetworkBehaviour
     void Update()
     {
         if (!IsOwner) return;
-        
-        if (_shootAction.WasPressedThisFrame() && Time.time >= _nextFireTime && _currentAmmo > 0)
+
+        if (_shootAction.WasPressedThisFrame())
         {
-            _nextFireTime = Time.time + _fireRate;
-            Shoot();
-            Debug.Log("Shoot called");
+            if (_currentAmmo <= 0)
+                _playerAudio?.PlayEmpty();         
+            else if (Time.time >= _nextFireTime)
+            {
+                _nextFireTime = Time.time + _fireRate;
+                Shoot();
+            }
         }
-        if (_reloadAction.WasPressedThisFrame() || _currentAmmo <= 0)
-        {
+
+        if (_reloadAction.WasPressedThisFrame())
             Reload();
-        }
     }
 
     private void Shoot()
@@ -79,6 +97,8 @@ public class Weapon : NetworkBehaviour
 
         // Send to server for authoritative hit validation
         ShootServerRpc(ray.origin, ray.direction);
+
+        _playerAudio?.PlayShoot();
     }
 
     [ServerRpc]
@@ -87,7 +107,11 @@ public class Weapon : NetworkBehaviour
         RaycastHit hit;
         Ray ray = new Ray(origin, direction);
 
-        if (Physics.Raycast(ray, out hit, _range))
+        // Ignore FirstPersonWeapon and FirstPersonBody layers
+        int ignoreMask = LayerMask.GetMask("FirstPersonWeapon", "FirstPersonBody");
+        int layerMask = ~ignoreMask; // ~ means "everything except these"
+
+        if (Physics.Raycast(ray, out hit, _range, layerMask))
         {
             Debug.Log($"[Server] Hit: {hit.collider.name}");
 
@@ -108,21 +132,17 @@ public class Weapon : NetworkBehaviour
                 });
             }
         }
+        else
+        {
+            Debug.Log("[Server] Raycast hit nothing");
+        }
     }
-
-
-
 
     [ClientRpc]
     private void ShowHitMarkerClientRpc(ClientRpcParams _ = default)
     {
         HUDManager.Instance?.ShowHitMarker();
     }
-
-
-
-
-
 
     private void Reload()
     {
@@ -134,9 +154,8 @@ public class Weapon : NetworkBehaviour
         _currentAmmo = _ammoPerReload;
         _totalAmmo -= _ammoPerReload;   
 
-
-        RefreshAmmoHUD();     // ← update HUD after reloading
-
+        RefreshAmmoHUD(); 
+        _playerAudio?.PlayReload(); 
 
         Debug.Log("Weapon reloaded.");
     }
@@ -148,7 +167,6 @@ public class Weapon : NetworkBehaviour
         RefreshAmmoHUD();
     }
 
-
     private void PickupAmmo()
     {
         _totalAmmo += _maxAmmo;
@@ -156,12 +174,9 @@ public class Weapon : NetworkBehaviour
         RefreshAmmoHUD();
         Debug.Log("Picked up ammo. Total ammo: " + _totalAmmo);
     }
-     
-     
+  
     private void RefreshAmmoHUD()
     {
         HUDManager.Instance?.UpdateAmmo(_currentAmmo, _totalAmmo);
     }
-
-
 }

@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class PlayerHealth : NetworkBehaviour
 {
+    private PlayerAudio _playerAudio;
     [SerializeField] private int _maxHealth = 100;
     public bool IsDead => CurrentHealth.Value <= 0;
 
@@ -14,6 +15,8 @@ public class PlayerHealth : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        _playerAudio = GetComponent<PlayerAudio>();
+
         if (IsServer)
             CurrentHealth.Value = _maxHealth;
 
@@ -42,6 +45,19 @@ public class PlayerHealth : NetworkBehaviour
         Debug.Log($"Player {OwnerClientId} died! Killed by {attackerClientId}");
         ScoreManager.Instance?.RegisterKill(attackerClientId);
         DieClientRpc();
+        NotifyKillerClientRpc(new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new[] { attackerClientId }
+            }
+        });
+    }
+
+    [ClientRpc]
+    private void NotifyKillerClientRpc(ClientRpcParams _ = default)
+    {
+        GetComponent<PlayerAudio>()?.PlayKill();
     }
 
     [ClientRpc]
@@ -59,6 +75,8 @@ public class PlayerHealth : NetworkBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        _playerAudio?.PlayDeath();
 
         Debug.Log("Local player died — input disabled.");
     }
@@ -127,6 +145,8 @@ public class PlayerHealth : NetworkBehaviour
     // ── HUD Update ─────────────────────────────────────────────────────────────
     private void OnHealthChanged(int oldVal, int newVal)
     {
+        if (newVal < oldVal)
+            _playerAudio?.PlayHurt();
         Debug.Log($"Health changed: {oldVal} -> {newVal}");
         if (IsOwner) HUDManager.Instance?.UpdateHealth(newVal);
     }

@@ -25,6 +25,8 @@ public class MouseMovement : NetworkBehaviour
         if (!IsOwner)
         {
             gameObject.SetActive(false);
+            GetComponent<Camera>().enabled = false;
+            enabled = false;
             return;
         }
     }

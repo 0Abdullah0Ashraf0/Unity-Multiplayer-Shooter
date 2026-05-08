@@ -1,0 +1,22 @@
+fileFormatVersion: 2
+guid: e4927232306f4ad4ba02dba0661b8d77
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - _weaponSource: {instanceID: 0}
+  - _movementSource: {instanceID: 0}
+  - _shootClip: {fileID: 8300000, guid: 9ffdb608538cc164a85a0314796256f7, type: 3}
+  - _reloadClip: {fileID: 8300000, guid: fc54279266308984e8a04a8179e52d54, type: 3}
+  - _emptyClip: {fileID: 8300000, guid: e7ba319a6eee41345bea947622179a72, type: 3}
+  - _jumpClip: {fileID: 8300000, guid: 268575cc7a313dc458763566dc07089b, type: 3}
+  - _footstepClip: {fileID: 8300000, guid: 0430cc56eaf22fb4c96f3a2e2eaa3c07, type: 3}
+  - _hurtClip1: {fileID: 8300000, guid: 481573a6ff023f14bbbfd0c6b46de1d1, type: 3}
+  - _hurtClip2: {fileID: 8300000, guid: ad4b7ab9691ce1340ae02e23ebc5f0e7, type: 3}
+  - _deathClip: {fileID: 8300000, guid: 4ecb8fd5687433048834828e0d79d59d, type: 3}
+  - _killClip: {fileID: 8300000, guid: a9babef3a44a8ab4f911f800ca09ab55, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

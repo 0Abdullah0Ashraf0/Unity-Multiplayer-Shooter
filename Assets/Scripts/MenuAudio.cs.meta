@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 76c3684d6be087a46bbe2e6df9f9f792
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - _clickClip: {fileID: 8300000, guid: 2fac18f06376069428e8f9262a14debf, type: 3}
+  - _connectingClip: {fileID: 8300000, guid: 2d19a3f0992c5184e9c7da2a1dcc6f27, type: 3}
+  - _wrongIpClip: {fileID: 8300000, guid: 4c6d1a4ed5ce01441a79e0d0c21f6160, type: 3}
+  - _connectedClip: {fileID: 8300000, guid: f2368ca4ecf5c604085147e2450f4670, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

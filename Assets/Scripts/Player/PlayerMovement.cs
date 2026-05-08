@@ -21,11 +21,12 @@ public class PlayerMovement : NetworkBehaviour
 
     private CharacterController _controller;
     private PlayerInput _playerInput;
-
     private InputAction _moveAction;
     private InputAction _jumpAction; 
     private InputAction _walkAction;
     private InputAction _crouchAction; 
+
+    private PlayerAudio _playerAudio;
 
     public override void OnNetworkSpawn()
     {
@@ -44,6 +45,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         _controller = GetComponent<CharacterController>();
         _playerInput = GetComponent<PlayerInput>();
+        _playerAudio = GetComponent<PlayerAudio>();
         
         _moveAction = _playerInput.actions["Move"];
         _jumpAction = _playerInput.actions["Jump"];
@@ -68,6 +70,8 @@ public class PlayerMovement : NetworkBehaviour
         Vector3 horizontal = GetHorizontalMove();
         _velocity.y += _gravity * Time.deltaTime;
         _controller.Move((horizontal + Vector3.up * _velocity.y) * Time.deltaTime);
+
+        HandleFootsteps(horizontal);
     }
 
     void HandleGrounding()
@@ -81,7 +85,12 @@ public class PlayerMovement : NetworkBehaviour
     void HandleJump()
     {
         if (_jumpAction.WasPressedThisFrame() && _isGrounded && !_crouchAction.IsPressed())
+        {
             _velocity.y = Mathf.Sqrt(_jumpHeight * -2f * _gravity);
+            _playerAudio?.PlayJumpLocal();
+            _playerAudio?.PlayJump();
+        }
+
     }
     void HandleCrouch()
     {
@@ -110,5 +119,23 @@ public class PlayerMovement : NetworkBehaviour
         else if (_walkAction.IsPressed()) _speed = _walkSpeed;
 
         return move * _speed;
+    }
+
+    void HandleFootsteps(Vector3 horizontal)
+    {
+        //if on ground & moving horizontally -> if not playing -> play footstep sounds 
+
+        if(_isGrounded && horizontal.magnitude > 0.1)
+        {
+            if (!_playerAudio.isFootstepPlaying())
+            {
+                _playerAudio.PlayFootstepLocal();
+                _playerAudio.PlayFootstep();
+            }
+        }
+        else
+        {
+            _playerAudio.StopFootsteps();
+        }
     }
 }
