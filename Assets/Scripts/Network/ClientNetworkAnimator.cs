@@ -27,6 +27,9 @@ public class ClientNetworkAnimator : NetworkAnimator
     private float _velX, _velY;
     private const float SmoothTime = 0.1f;
 
+    private static readonly int IsCrouching = Animator.StringToHash("isCrouching");
+    private InputAction _crouchAction;
+
     void Awake()
     {
         if (Animator == null)
@@ -37,6 +40,7 @@ public class ClientNetworkAnimator : NetworkAnimator
         _playerInput = GetComponent<PlayerInput>();
         _moveAction = _playerInput.actions["Move"];
         _fireAction = _playerInput.actions["Shoot"];
+        _crouchAction = _playerInput.actions["Crouch"];
     }
 
     public override void OnNetworkSpawn()
@@ -62,6 +66,7 @@ public class ClientNetworkAnimator : NetworkAnimator
 
         Vector2 input = _moveAction.ReadValue<Vector2>();
         bool isMoving = input.sqrMagnitude > 0.01f;
+        
 
         // Smooth the blend tree values so transitions aren't snappy
         _currentX = Mathf.SmoothDamp(_currentX, input.x, ref _velX, SmoothTime);
@@ -71,6 +76,7 @@ public class ClientNetworkAnimator : NetworkAnimator
         Animator.SetFloat(MoveY, _currentY);
         Animator.SetBool(IsMoving, isMoving);
         Animator.SetBool(IsFiring, _fireAction.IsPressed());
+        Animator.SetBool(IsCrouching, _crouchAction.IsPressed());
     }
 
     // Call from your weapon script

@@ -31,13 +31,15 @@ public class PlayerHealth : NetworkBehaviour
     // ── Taking Damage ──────────────────────────────────────────────────────────
     public void TakeDamage(int damage, ulong attackerClientId)
     {
-        if (!IsServer || IsDead) return;
+        if (!IsServer || IsDead || _isDying) return; // add _isDying check
 
         CurrentHealth.Value = Mathf.Max(0, CurrentHealth.Value - damage);
-        Debug.Log($"Player {OwnerClientId} took {damage} damage. HP: {CurrentHealth.Value}");
 
         if (CurrentHealth.Value <= 0)
+        {
+            _isDying = true;
             Die(attackerClientId);
+        }
     }
 
     private void Die(ulong attackerClientId)
@@ -96,10 +98,14 @@ public class PlayerHealth : NetworkBehaviour
         RespawnClientRpc(spawnPos, spawnRot);
     }
 
-    // Called by ScoreManager (or anything) with an explicit position
+    private bool _isDying = false;
+
+    
+
     public void Respawn(Vector3 position, Quaternion rotation)
     {
         if (!IsServer) return;
+        _isDying = false; // reset on respawn
         CurrentHealth.Value = _maxHealth;
         RespawnClientRpc(position, rotation);
     }

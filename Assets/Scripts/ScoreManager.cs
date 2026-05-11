@@ -5,6 +5,7 @@ using System.Collections;
 public class ScoreManager : NetworkBehaviour
 {
     public static ScoreManager Instance;
+    public AmmoSpawner spawner;
      
     // ─── Settings
     [SerializeField] private int _killsToWin = 5;
@@ -61,6 +62,7 @@ public class ScoreManager : NetworkBehaviour
         if (Player1Kills.Value >= _killsToWin || Player2Kills.Value >= _killsToWin)
         {
             // Game over – tell all clients who won
+            spawner.ClearAllAmmo();
             EndGameClientRpc(killerClientId);
         }
         else

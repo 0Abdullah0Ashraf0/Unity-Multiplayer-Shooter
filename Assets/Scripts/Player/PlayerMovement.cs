@@ -14,6 +14,10 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField] private float _standHeight  = 2f;
     [SerializeField] private float _crouchHeight = 1.3f;
     [SerializeField] private float _targetHeight;
+    [SerializeField] private Transform _cameraHolder;
+    [SerializeField] private float _standCameraHeight = 1.6f;
+    [SerializeField] private float _crouchCameraHeight = 0.9f;
+    [SerializeField] private float _cameraCrouchSpeed = 8f;
 
     private float _gravity = -9.81f * 2f;
     private bool _isGrounded;
@@ -61,17 +65,26 @@ public class PlayerMovement : NetworkBehaviour
     }
 
     void Update()
-    {      
-        if(!IsOwner) return; 
+    {
+        if (!IsOwner) return;
         HandleGrounding();
         HandleJump();
         HandleCrouch();
+        HandleCameraHeight(); // add this
 
         Vector3 horizontal = GetHorizontalMove();
         _velocity.y += _gravity * Time.deltaTime;
         _controller.Move((horizontal + Vector3.up * _velocity.y) * Time.deltaTime);
 
         HandleFootsteps(horizontal);
+    }
+    void HandleCameraHeight()
+    {
+        float targetCameraY = _crouchAction.IsPressed() ? _crouchCameraHeight : _standCameraHeight;
+
+        Vector3 currentPos = _cameraHolder.localPosition;
+        currentPos.y = Mathf.Lerp(currentPos.y, targetCameraY, Time.deltaTime * _cameraCrouchSpeed);
+        _cameraHolder.localPosition = currentPos;
     }
 
     void HandleGrounding()
@@ -95,7 +108,7 @@ public class PlayerMovement : NetworkBehaviour
     void HandleCrouch()
     {
         _targetHeight = _crouchAction.IsPressed() ? _crouchHeight : _standHeight;
-
+        
         //height transition
         float newHeight = Mathf.Lerp(
             _controller.height,
@@ -125,7 +138,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         //if on ground & moving horizontally -> if not playing -> play footstep sounds 
 
-        if(_isGrounded && horizontal.magnitude > 0.1)
+        if (_isGrounded && horizontal.magnitude > 0.1f && !_crouchAction.IsPressed())
         {
             if (!_playerAudio.isFootstepPlaying())
             {
