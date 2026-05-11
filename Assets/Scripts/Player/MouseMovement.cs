@@ -5,19 +5,22 @@ using UnityEngine.InputSystem;
 public class MouseMovement : NetworkBehaviour
 {
     [SerializeField] private Transform _playerRoot;
+
+    // _mouseSensitivity is kept as a fallback for when SettingsManager isn't
+    // present (e.g. quick Play-mode tests without the full scene setup).
     [SerializeField] private float _mouseSensitivity = 0.1f;
 
-    [SerializeField] private float _ytopRotationLimit = -90f;
-    [SerializeField] private float _ybottomRotationLimit = 90f;
+    [SerializeField] private float _ytopRotationLimit    = -90f;
+    [SerializeField] private float _ybottomRotationLimit =  90f;
 
     private float _xRotation = 0f;
     private PlayerInput _playerInput;
     private InputAction _lookAction;
 
-    void Awake() // for new input system
+    void Awake()
     {
         _playerInput = GetComponentInParent<PlayerInput>();
-        _lookAction = _playerInput.actions["Look"];
+        _lookAction  = _playerInput.actions["Look"];
     }
 
     public override void OnNetworkSpawn()
@@ -34,25 +37,24 @@ public class MouseMovement : NetworkBehaviour
     {
         if (!IsOwner) return;
         Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        Cursor.visible   = false;
     }
 
     void Update()
     {
-        if(!IsOwner) return; // Only allow the owning client to control camera movement
-        //get inputs
+        if (!IsOwner) return;
+
+        // Prefer the live value from SettingsManager; fall back to Inspector field.
+        float sens = SettingsManager.Instance != null
+            ? SettingsManager.Instance.Sensitivity
+            : _mouseSensitivity;
+
         Vector2 lookInput = _lookAction.ReadValue<Vector2>();
 
-        //set vertical rotation on y axis (left and right)
-        _xRotation -= lookInput.y * _mouseSensitivity;
+        _xRotation -= lookInput.y * sens;
+        _xRotation  = Mathf.Clamp(_xRotation, _ytopRotationLimit, _ybottomRotationLimit);
 
-        //set vertical rotation limits
-        _xRotation = Mathf.Clamp(_xRotation, _ytopRotationLimit, _ybottomRotationLimit);
-
-        //apply vertical rotation
         transform.localRotation = Quaternion.Euler(_xRotation, 0f, 0f);
-        
-        //rotate player root on x axis (up and down)
-        _playerRoot.Rotate(Vector3.up * lookInput.x * _mouseSensitivity); 
+        _playerRoot.Rotate(Vector3.up * lookInput.x * sens);
     }
 }
