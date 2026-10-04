@@ -168,3 +168,14 @@ Use **Multiplayer Play Mode** to run two clients in the editor without a build:
 1. Add all scenes to Build Settings.
 2. Set platform to **Windows / Mac / Linux Standalone**.
 3. Build and distribute — clients connect to the host's LAN IP on port 7777.
+
+---
+
+## My Contributions (Abdallah Ashraf)
+
+This is my fork of a 3-person team project, [DohaAyman55/Unity-Multiplayer-Shooter](https://github.com/DohaAyman55/Unity-Multiplayer-Shooter). Credit for the original project goes to its authors, [@DohaAyman55](https://github.com/DohaAyman55) and [@Pupyz](https://github.com/Pupyz).
+
+My part:
+- **Level design:** designed and built all of the game's maps, including layout, props, lighting, and spawn points.
+- **Multiplayer flow:** server-driven respawn and connection approval (`MainMenu`, `PlayerHealth`).
+
